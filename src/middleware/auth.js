@@ -1,33 +1,34 @@
 import jwt from 'jsonwebtoken';
 
-const auth = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   try {
-    if (!req.headers.authorization) {
-      res.status(401).json({ message: 'Please provide token' });
-    }
 
-    const token = req.headers.authorization.split(' ');
-    if (token.length >= 2) {
-      /* eslint-disable no-undef */
-      const decodedata = jwt.verify(token[1], process.env.JWTPHRASE);
-
-      if (decodedata?.id) {
-        req.userId = decodedata?.id;
-        req.email = decodedata?.email;
-        next();
-      } else {
-        res.status(401).json({ res: 'error', message: 'invalid token' });
-      }
-    } else {
-      res.status(401).json({ res: 'error', message: 'invalid token' });
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided. Please login first.' 
+      });
     }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+    
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      res: 'error',
-      message: 'error in auth middleware',
+    return res.status(401).json({ 
+      success: false,
+      message: 'Invalid or expired token' 
     });
   }
 };
 
-export default auth;
+export const adminMiddleware = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      success: false,
+      message: 'Access denied. Admin only.' 
+    });
+  }
+  next();
+};

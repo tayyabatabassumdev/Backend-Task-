@@ -1,28 +1,42 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
+import bcryptjs from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  name: { 
+    type: String, 
+    required: true 
+  },
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    lowercase: true
+  },
+  password: { 
+    type: String, 
+    required: true 
+  },
+  role: { 
+    type: String, 
+    enum: ['user', 'admin'], 
+    default: 'user' 
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+});
 
-  // Additional Details
-  companyName: String,
-  contactPerson: String,
-  gstNumber: String,
-  panNumber: String,
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcryptjs.genSalt(10);
+    this.password = await bcryptjs.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
-  // Billing
-  billingAddress: String,
-  billingCity: String,
-  billingZip: String,
-  billingCountry: String,
-  billingPhone: String,
-
-  // Shipping
-  shippingAddress: String,
-  shippingCity: String,
-  shippingZip: String,
-  shippingCountry: String,
-  shippingPhone: String,
-}, { timestamps: true });
-
-export default mongoose.model("User", userSchema);
+export default mongoose.model('User', userSchema);
